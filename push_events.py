@@ -35,6 +35,13 @@ def load_events():
     ticket_col = col("ticket link")
     notes_col = col("notes")
 
+    # Fallback for current live workbook layout, where headers stop at I
+    # but newer rows may still carry ticket link in H and notes in K.
+    if ticket_col is None:
+        ticket_col = 7
+    if notes_col is None:
+        notes_col = 10
+
     for row in ws.iter_rows(min_row=5, values_only=True):
         if date_col is None or date_col >= len(row) or not row[date_col]:
             continue
