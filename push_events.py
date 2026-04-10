@@ -17,16 +17,34 @@ def load_events():
     ws = wb.active
     events = []
     today = date.today()
+
+    headers = [str(c or "").strip().lower() for c in next(ws.iter_rows(min_row=4, max_row=4, values_only=True))]
+
+    def col(*names):
+        for name in names:
+            key = name.strip().lower()
+            if key in headers:
+                return headers.index(key)
+        return None
+
+    date_col = col("date")
+    venue_col = col("venue")
+    act_col = col("act / event name")
+    bands_col = col("bands", "bands (all acts on the bill)")
+    flyer_col = col("flyer filename")
+    ticket_col = col("ticket link")
+    notes_col = col("notes")
+
     for row in ws.iter_rows(min_row=5, values_only=True):
-        if not row[0]:
+        if date_col is None or date_col >= len(row) or not row[date_col]:
             continue
-        raw_date = row[0]
-        venue = str(row[1] or "").strip()
-        act_name = str(row[2] or "").strip()
-        bands = str(row[3] or "").strip()
-        flyer_filename = str(row[6] or "").strip()
-        ticket_link = str(row[9] if len(row) > 9 else "").strip()
-        notes = str(row[10] if len(row) > 10 else "").strip()
+        raw_date = row[date_col]
+        venue = str(row[venue_col] or "").strip() if venue_col is not None and venue_col < len(row) else ""
+        act_name = str(row[act_col] or "").strip() if act_col is not None and act_col < len(row) else ""
+        bands = str(row[bands_col] or "").strip() if bands_col is not None and bands_col < len(row) else ""
+        flyer_filename = str(row[flyer_col] or "").strip() if flyer_col is not None and flyer_col < len(row) else ""
+        ticket_link = str(row[ticket_col] or "").strip() if ticket_col is not None and ticket_col < len(row) else ""
+        notes = str(row[notes_col] or "").strip() if notes_col is not None and notes_col < len(row) else ""
         event_date = None
         try:
             if isinstance(raw_date, datetime):
