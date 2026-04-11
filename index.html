@@ -8,31 +8,26 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #C8960C; font-family: Arial, sans-serif; padding: 30px 20px; }
     .header { text-align: center; margin-bottom: 40px; padding: 20px; }
-    .header img { width: 120px; margin-bottom: 15px; }
-    .header h1 { color: #1A1A2E; font-size: 28px; letter-spacing: 2px; text-transform: uppercase; }
-    .header p { color: #1A1A2E; font-size: 14px; margin-top: 6px; }
+    .header h1 { color: #1A1A2E; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; }
+    .header p { color: #1A1A2E; font-size: 13px; margin-top: 6px; }
     .venue-section { max-width: 900px; margin: 0 auto 50px auto; }
     .venue-header { background: #1A1A2E; text-align: center; padding: 16px 24px; border-radius: 6px; margin-bottom: 20px; }
     .venue-header h2 { color: #C9A84C; font-size: 20px; letter-spacing: 2px; text-transform: uppercase; }
     .venue-header p { color: #F5E6C8; font-size: 12px; margin-top: 4px; }
-    .event-card { display: flex; background: #1A1A2E; border-radius: 8px; margin-bottom: 16px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
-    .event-img { width: 160px; min-width: 160px; height: 160px; object-fit: cover; display: block; }
-    .event-placeholder { width: 160px; min-width: 160px; height: 160px; background: #2a2a4a; display: flex; align-items: center; justify-content: center; color: #C9A84C; font-size: 11px; text-align: center; padding: 10px; }
-    .event-details { padding: 14px 16px; flex: 1; }
+    .event-card { background: #1A1A2E; border-radius: 8px; margin-bottom: 16px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .event-img-container { width: 100%; overflow: hidden; }
+    .event-img { width: 100%; height: auto; max-height: 400px; object-fit: contain; display: block; background: #111; }
+    .event-details { padding: 14px 16px; }
     .event-date { color: #C9A84C; font-size: 12px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
     .event-name { color: #ffffff; font-size: 17px; font-weight: bold; margin: 4px 0; }
     .event-bill { color: #cccccc; font-size: 12px; line-height: 1.8; margin: 6px 0; }
     .event-notes { color: #aaaaaa; font-size: 11px; margin-top: 4px; }
-    .btn { display: inline-block; margin-top: 10px; padding: 8px 18px; border-radius: 4px; font-size: 12px; font-weight: bold; text-decoration: none; letter-spacing: 1px; }
+    .btn { display: inline-block; margin-top: 10px; padding: 8px 18px; border-radius: 4px; font-size: 12px; font-weight: bold; text-decoration: none; letter-spacing: 1px; cursor: pointer; }
     .btn-tickets { background: #8B0000; color: #ffffff; }
     .btn-door { background: #333333; color: #C9A84C; }
     .btn-free { background: #2E7D32; color: #ffffff; }
     .no-events { text-align: center; color: #555; font-style: italic; padding: 24px; border: 2px dashed #ccc; border-radius: 8px; background: #fff8dc; }
     .footer { text-align: center; color: #1A1A2E; font-size: 12px; margin-top: 40px; padding-bottom: 20px; }
-    @media (max-width: 600px) {
-      .event-card { flex-direction: column; }
-      .event-img, .event-placeholder { width: 100%; min-width: unset; height: 220px; }
-    }
   </style>
 </head>
 <body>
