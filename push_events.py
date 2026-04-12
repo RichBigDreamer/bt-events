@@ -17,10 +17,8 @@ def load_events():
     ws = wb.active
     events = []
     for row in ws.iter_rows(min_row=5, values_only=True):
-        # Skip rows with no date AND no venue — truly blank rows
         if not row[0] and not row[1]:
             continue
-        # Skip rows with no date
         if not row[0]:
             continue
         raw_date = row[0]
@@ -49,7 +47,7 @@ def load_events():
             continue
         flyer_path = Path(FLYERS_FOLDER) / flyer_filename
         if not flyer_path.exists():
-            print(f"  Skipping {description or 'unnamed'} - flyer not found: {flyer_filename}")
+            print(f"  Skipping - flyer not found: {flyer_filename}")
             continue
         date_display = event_date.strftime("%A, %B %d, %Y").replace(" 0", " ")
         events.append({
@@ -70,48 +68,43 @@ def build_event_card(event):
     mime_map = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}
     mime = mime_map.get(ext, "image/jpeg")
     if ext == ".pdf":
-        img_html = '<div style="width:180px;min-width:180px;height:180px;background:#2a2a4a;display:flex;align-items:center;justify-content:center;color:#C9A84C;font-size:11px;">PDF Flyer</div>'
+        img_html = '<div class="flyer-img" style="background:#2a2a4a;display:flex;align-items:center;justify-content:center;color:#C9A84C;font-size:11px;">PDF Flyer</div>'
     else:
         with open(flyer_path, "rb") as f:
             img_data = base64.b64encode(f.read()).decode()
-        img_html = f'<img src="data:{mime};base64,{img_data}" alt="Event flyer" style="width:180px;min-width:180px;height:180px;object-fit:contain;display:block;background:#111;">'
+        img_html = f'<img class="flyer-img" src="data:{mime};base64,{img_data}" alt="Event flyer">'
 
     ticket_link = event["ticket_link"].strip() if event["ticket_link"] else ""
     desc_lower = event["description"].lower() if event["description"] else ""
 
     if ticket_link.startswith("http"):
-        btn = f'<a href="{ticket_link}" target="_blank" style="display:inline-block;padding:10px 20px;background:#8B0000;color:#fff;border-radius:4px;font-size:13px;font-weight:bold;text-decoration:none;letter-spacing:1px;white-space:nowrap;">🎟 GET TICKETS</a>'
+        btn = f'<a href="{ticket_link}" target="_blank" class="event-btn btn-tickets">GET TICKETS</a>'
     elif "free" in desc_lower:
-        btn = '<span style="display:inline-block;padding:10px 20px;background:#2E7D32;color:#fff;border-radius:4px;font-size:13px;font-weight:bold;letter-spacing:1px;white-space:nowrap;">🎉 FREE ADMISSION</span>'
+        btn = '<span class="event-btn btn-free">FREE ADMISSION</span>'
     else:
-        btn = '<span style="display:inline-block;padding:10px 20px;background:#333;color:#C9A84C;border-radius:4px;font-size:13px;font-weight:bold;letter-spacing:1px;white-space:nowrap;">🚪 ADMISSION AT DOOR</span>'
+        btn = '<span class="event-btn btn-door">ADMISSION AT DOOR</span>'
 
-    desc_html = f'<div style="color:#cccccc;font-size:13px;line-height:1.7;margin-top:8px;white-space:pre-wrap;">{event["description"]}</div>' if event["description"] else ""
+    desc_html = f'<div class="event-description">{event["description"]}</div>' if event["description"] else ""
 
-    # Desktop: flyer | description | button
-    # Mobile: stacks vertically
-    return f'''<div style="display:flex;align-items:stretch;background:#1A1A2E;border-radius:8px;margin-bottom:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.25);">
-  <!-- Flyer -->
-  <div style="flex:0 0 180px;">
-    {img_html}
+    return f'''<div class="event-card">
+  <!-- Desktop: flyer | description | button (via CSS) -->
+  <!-- Mobile: [flyer + description side by side] then button full width -->
+  <div class="card-top">
+    <div class="card-flyer">{img_html}</div>
+    <div class="card-middle">
+      <div class="event-date">{event["date_display"]}</div>
+      {desc_html}
+    </div>
+    <div class="card-btn-desktop">{btn}</div>
   </div>
-  <!-- Middle: date + description -->
-  <div style="flex:1;padding:16px 20px;min-width:0;">
-    <div style="color:#C9A84C;font-size:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;">{event["date_display"]}</div>
-    {desc_html}
-  </div>
-  <!-- Right: ticket button -->
-  <div style="flex:0 0 auto;display:flex;align-items:center;padding:16px;">
-    {btn}
-  </div>
+  <div class="card-btn-mobile">{btn}</div>
 </div>'''
 
 def build_page_html(events):
     ridgewood = [e for e in events if "ridgewood" in e["venue"].lower()]
     liberty = [e for e in events if "liberty" in e["venue"].lower()]
 
-    no_events = '<div style="text-align:center;color:#555;font-style:italic;padding:24px;border:2px dashed #ccc;border-radius:8px;background:#fff8dc;">No upcoming events — check back soon!</div>'
-
+    no_events = '<div class="no-events">No upcoming events — check back soon!</div>'
     ridgewood_html = "\n".join([build_event_card(e) for e in ridgewood]) if ridgewood else no_events
     liberty_html = "\n".join([build_event_card(e) for e in liberty]) if liberty else no_events
 
@@ -125,7 +118,7 @@ def build_page_html(events):
     * {{ margin: 0; padding: 0; box-sizing: border-box; }}
     body {{ background: #C8960C; font-family: Arial, sans-serif; }}
 
-    /* Sticky location nav */
+    /* Sticky nav */
     .loc-nav {{
       position: sticky;
       top: 0;
@@ -133,17 +126,18 @@ def build_page_html(events):
       background: #1A1A2E;
       display: flex;
       justify-content: center;
-      gap: 20px;
+      gap: 16px;
       padding: 10px 20px;
+      flex-wrap: wrap;
     }}
     .loc-nav a {{
       color: #C9A84C;
       text-decoration: none;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: bold;
       letter-spacing: 1px;
       text-transform: uppercase;
-      padding: 6px 16px;
+      padding: 6px 14px;
       border: 1px solid #C9A84C;
       border-radius: 4px;
     }}
@@ -154,26 +148,141 @@ def build_page_html(events):
     .venue-header {{ background: #1A1A2E; text-align: center; padding: 16px 24px; border-radius: 6px; margin-bottom: 20px; }}
     .venue-header h2 {{ color: #C9A84C !important; font-size: 20px; letter-spacing: 2px; text-transform: uppercase; margin: 0; }}
     .venue-header p {{ color: #F5E6C8 !important; font-size: 12px; margin-top: 4px; }}
-    .footer {{ text-align: center; color: #1A1A2E; font-size: 12px; padding: 20px; }}
+
+    /* Event card */
+    .event-card {{
+      background: #1A1A2E;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }}
+
+    /* Card top row */
+    .card-top {{
+      display: flex;
+      align-items: stretch;
+    }}
+
+    /* Flyer */
+    .card-flyer {{ flex: 0 0 160px; }}
+    .flyer-img {{
+      width: 160px;
+      height: 160px;
+      object-fit: contain;
+      display: block;
+      background: #111;
+    }}
+
+    /* Middle description */
+    .card-middle {{
+      flex: 1;
+      padding: 14px 18px;
+      min-width: 0;
+    }}
+    .event-date {{
+      color: #C9A84C;
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }}
+    .event-description {{
+      color: #cccccc;
+      font-size: 13px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }}
+
+    /* Desktop button — right column */
+    .card-btn-desktop {{
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      padding: 16px;
+    }}
+    .card-btn-mobile {{ display: none; }}
+
+    /* Buttons */
+    .event-btn {{
+      display: inline-block;
+      padding: 10px 18px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      text-decoration: none;
+      letter-spacing: 1px;
+      text-align: center;
+      cursor: pointer;
+      white-space: nowrap;
+    }}
+    .btn-tickets {{ background: #8B0000; color: #ffffff; }}
+    .btn-free {{ background: #2E7D32; color: #ffffff; }}
+    .btn-door {{ background: #333333; color: #C9A84C; }}
+
+    .no-events {{
+      text-align: center;
+      color: #555;
+      font-style: italic;
+      padding: 24px;
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      background: #fff8dc;
+    }}
+
+    .footer {{
+      text-align: center;
+      color: #1A1A2E;
+      font-size: 12px;
+      padding: 20px;
+    }}
     .footer a {{ color: #1A1A2E; }}
 
-    /* Mobile */
+    /* ── MOBILE ── */
     @media (max-width: 650px) {{
-      .loc-nav {{ gap: 10px; }}
-      .event-card-inner {{ flex-direction: column !important; }}
-      .event-card-inner .flyer-col {{ flex: none !important; width: 100% !important; }}
-      .event-card-inner .flyer-col img {{ width: 100% !important; height: 260px !important; object-fit: contain !important; }}
-      .event-card-inner .btn-col {{ justify-content: flex-start !important; padding: 0 16px 16px 16px !important; }}
+      /* Hide desktop button, show mobile button */
+      .card-btn-desktop {{ display: none; }}
+      .card-btn-mobile {{
+        display: block;
+        padding: 12px 16px;
+        background: transparent;
+      }}
+      .card-btn-mobile .event-btn {{
+        display: block;
+        width: 100%;
+        text-align: center;
+        padding: 12px;
+        font-size: 13px;
+      }}
+
+      /* On mobile: flyer takes left half, description takes right half */
+      .card-top {{
+        display: flex;
+        align-items: stretch;
+      }}
+      .card-flyer {{ flex: 0 0 45%; }}
+      .flyer-img {{
+        width: 100%;
+        height: 100%;
+        min-height: 140px;
+        object-fit: cover;
+      }}
+      .card-middle {{
+        flex: 1;
+        padding: 10px 12px;
+      }}
+      .event-date {{ font-size: 11px; }}
+      .event-description {{ font-size: 12px; }}
     }}
   </style>
 </head>
 <body>
 
-  <!-- Sticky top nav -->
   <nav class="loc-nav">
-    <a href="#ridgewood">📍 Ridgewood, Queens</a>
-    <a href="#liberty">📍 Liberty, NY</a>
-    <a href="https://www.bridgeandtunnelbrewery.com" target="_parent">🏠 Home</a>
+    <a href="#ridgewood">Ridgewood, Queens</a>
+    <a href="#liberty">Liberty, NY</a>
+    <a href="https://www.bridgeandtunnelbrewery.com" target="_parent">Home</a>
   </nav>
 
   <div class="content">
@@ -195,7 +304,7 @@ def build_page_html(events):
   </div>
 
   <div class="footer">
-    <p>© Bridge and Tunnel Brewery · <a href="https://www.bridgeandtunnelbrewery.com" target="_parent">bridgeandtunnelbrewery.com</a></p>
+    <p>Bridge and Tunnel Brewery &middot; <a href="https://www.bridgeandtunnelbrewery.com" target="_parent">bridgeandtunnelbrewery.com</a></p>
   </div>
 
 </body>
