@@ -1,6 +1,6 @@
 """
 Bridge and Tunnel Brewery - GitHub Events Page Updater
-Fixed: ADmin2 paths, duplicate description, multiple events same date, verification step
+Fixed: ADmin2 paths, duplicate description, multiple events same date, verification step, graceful git commit
 """
 import os, sys, base64, subprocess
 from datetime import datetime, date
@@ -18,22 +18,16 @@ def load_events():
     ws = wb.active
     events = []
     today = date.today()
-
     for row in ws.iter_rows(min_row=5, values_only=True):
-        # Skip truly blank rows
         if not row[0] and not row[1]:
             continue
         if not row[0]:
             continue
-
-        raw_date  = row[0]
-        venue     = str(row[1] or "").strip()
-        desc      = str(row[2] or "").strip()   # Column C: Show Description
-        # Columns D/E/F = promotor info — admin only, never shown publicly
-        flyer_fn  = str(row[6] or "").strip()   # Column G: Flyer Filename
-        ticket    = str(row[7] or "").strip()   # Column H: Ticket Link
-
-        # Parse date
+        raw_date = row[0]
+        venue = str(row[1] or "").strip()
+        desc = str(row[2] or "").strip()
+        flyer_fn = str(row[6] or "").strip()
+        ticket = str(row[7] or "").strip()
         event_date = None
         try:
             if isinstance(raw_date, datetime):
@@ -49,70 +43,49 @@ def load_events():
                         continue
         except:
             continue
-
-        # Skip if no valid date
         if not event_date:
             continue
-
-        # Auto-expire past events from public display
         if event_date < today:
             continue
-
-        # Skip if no flyer filename
         if not flyer_fn:
             continue
-
-        # Skip if flyer file doesn't exist
         flyer_path = Path(FLYERS_FOLDER) / flyer_fn
         if not flyer_path.exists():
-            print(f"  Skipping '{desc or flyer_fn}' - flyer file not found: {flyer_fn}")
+            print(f"  Skipping '{desc or flyer_fn}' - flyer not found: {flyer_fn}")
             continue
-
         date_display = event_date.strftime("%A, %B %d, %Y").replace(" 0", " ")
-
         events.append({
-            "date":         event_date,
+            "date": event_date,
             "date_display": date_display,
-            "venue":        venue,
-            "desc":         desc,        # single source of truth for display
-            "flyer_path":   str(flyer_path),
-            "ticket":       ticket,
+            "venue": venue,
+            "desc": desc,
+            "flyer_path": str(flyer_path),
+            "ticket": ticket,
         })
-
-    # Sort chronologically — nearest first
     events.sort(key=lambda x: x["date"])
     print(f"Found {len(events)} upcoming events with flyers")
     return events
 
-
 def build_event_card(event):
-    # --- Flyer image ---
     flyer_path = Path(event["flyer_path"])
     ext = flyer_path.suffix.lower()
     mime_map = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}
     mime = mime_map.get(ext, "image/jpeg")
-
     if ext == ".pdf":
         img_html = '<div class="flyer-img" style="background:#2a2a4a;display:flex;align-items:center;justify-content:center;color:#C9A84C;font-size:11px;">PDF Flyer</div>'
     else:
         with open(flyer_path, "rb") as f:
             img_data = base64.b64encode(f.read()).decode()
         img_html = f'<img class="flyer-img" src="data:{mime};base64,{img_data}" alt="Event flyer">'
-
-    # --- Admission button ---
     ticket = event["ticket"].strip() if event["ticket"] else ""
     desc_lower = event["desc"].lower()
-
     if ticket.startswith("http"):
         btn = f'<a href="{ticket}" target="_blank" class="event-btn btn-tickets">GET TICKETS</a>'
     elif "free" in desc_lower:
         btn = '<span class="event-btn btn-free">FREE ADMISSION</span>'
     else:
         btn = '<span class="event-btn btn-door">ADMISSION AT DOOR</span>'
-
-    # --- Description (single source, no duplication) ---
     desc_html = f'<div class="event-description">{event["desc"]}</div>' if event["desc"] else ""
-
     return f'''<div class="event-card">
   <div class="card-top">
     <div class="card-flyer">{img_html}</div>
@@ -125,15 +98,12 @@ def build_event_card(event):
   <div class="card-btn-mobile">{btn}</div>
 </div>'''
 
-
 def build_page_html(events):
     ridgewood = [e for e in events if "ridgewood" in e["venue"].lower()]
-    liberty   = [e for e in events if "liberty"   in e["venue"].lower()]
-
+    liberty = [e for e in events if "liberty" in e["venue"].lower()]
     no_events = '<div class="no-events">No upcoming events — check back soon!</div>'
     ridgewood_html = "\n".join([build_event_card(e) for e in ridgewood]) if ridgewood else no_events
-    liberty_html   = "\n".join([build_event_card(e) for e in liberty])   if liberty   else no_events
-
+    liberty_html = "\n".join([build_event_card(e) for e in liberty]) if liberty else no_events
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -143,16 +113,8 @@ def build_page_html(events):
   <style>
     * {{ margin: 0; padding: 0; box-sizing: border-box; }}
     body {{ background: #C8960C; font-family: Arial, sans-serif; }}
-    .loc-nav {{
-      position: sticky; top: 0; z-index: 100;
-      background: #1A1A2E;
-      display: flex; justify-content: center; gap: 16px; padding: 10px 20px; flex-wrap: wrap;
-    }}
-    .loc-nav a {{
-      color: #C9A84C; text-decoration: none; font-size: 12px; font-weight: bold;
-      letter-spacing: 1px; text-transform: uppercase;
-      padding: 6px 14px; border: 1px solid #C9A84C; border-radius: 4px;
-    }}
+    .loc-nav {{ position: sticky; top: 0; z-index: 100; background: #1A1A2E; display: flex; justify-content: center; gap: 16px; padding: 10px 20px; flex-wrap: wrap; }}
+    .loc-nav a {{ color: #C9A84C; text-decoration: none; font-size: 12px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; padding: 6px 14px; border: 1px solid #C9A84C; border-radius: 4px; }}
     .loc-nav a:hover {{ background: #C9A84C; color: #1A1A2E; }}
     .content {{ padding: 20px; }}
     .venue-section {{ max-width: 960px; margin: 0 auto 50px auto; }}
@@ -215,32 +177,32 @@ def build_page_html(events):
 </body>
 </html>'''
 
-
 def verify_html(html, events):
-    """Verify all expected events appear in generated HTML before pushing."""
     print("\nVerifying generated HTML...")
     missing = []
     for event in events:
-        # Check date appears in HTML
         if event["date_display"] not in html:
-            missing.append(f"  MISSING date: {event['date_display']} ({event['desc'][:40]})")
+            missing.append(f"  MISSING: {event['date_display']} - {event['desc'][:40]}")
     if missing:
-        print("WARNING - Some events may not have rendered correctly:")
+        print("WARNING - Some events may not have rendered:")
         for m in missing:
             print(m)
     else:
         print(f"  All {len(events)} events verified in HTML.")
     return len(missing) == 0
 
-
 def push_to_github():
     print("Pushing to GitHub...")
     os.chdir(REPO_PATH)
     subprocess.run(["git", "add", "."], check=True)
-    subprocess.run(["git", "commit", "-m", f"Update events {date.today()}"], check=True)
+    result = subprocess.run(["git", "commit", "-m", f"Update events {date.today()}"], capture_output=True)
+    if result.returncode == 1:
+        print("  Nothing new to commit - site already up to date.")
+        return
+    elif result.returncode != 0:
+        raise Exception(f"Git commit failed: {result.stderr.decode()}")
     subprocess.run(["git", "push"], check=True)
     print(f"\nDone! Live at: https://richbigdreamer.github.io/bt-events")
-
 
 if __name__ == "__main__":
     print("\nBridge and Tunnel Brewery - Events Page Updater")
