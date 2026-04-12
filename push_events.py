@@ -24,6 +24,7 @@ def load_events():
         raw_date = row[0]
         venue = str(row[1] or "").strip()
         description = str(row[2] or "").strip()
+        notes = str(row[10] or "").strip() if len(row) > 10 else ""
         flyer_filename = str(row[6] or "").strip()
         ticket_link = str(row[7] or "").strip()
         event_date = None
@@ -55,6 +56,7 @@ def load_events():
             "date_display": date_display,
             "venue": venue,
             "description": description,
+            "notes": notes,
             "flyer_path": str(flyer_path),
             "ticket_link": ticket_link,
         })
@@ -75,16 +77,19 @@ def build_event_card(event):
         img_html = f'<img class="flyer-img" src="data:{mime};base64,{img_data}" alt="Event flyer">'
 
     ticket_link = event["ticket_link"].strip() if event["ticket_link"] else ""
-    desc_lower = event["description"].lower() if event["description"] else ""
+    description = event["description"] or ""
+    notes = event.get("notes") or ""
+    full_text = "\n".join([part for part in [description, notes] if part.strip()])
+    full_text_lower = full_text.lower()
 
     if ticket_link.startswith("http"):
         btn = f'<a href="{ticket_link}" target="_blank" class="event-btn btn-tickets">GET TICKETS</a>'
-    elif "free" in desc_lower:
+    elif "free" in full_text_lower:
         btn = '<span class="event-btn btn-free">FREE ADMISSION</span>'
     else:
         btn = '<span class="event-btn btn-door">ADMISSION AT DOOR</span>'
 
-    desc_html = f'<div class="event-description">{event["description"]}</div>' if event["description"] else ""
+    desc_html = f'<div class="event-description">{full_text}</div>' if full_text else ""
 
     return f'''<div class="event-card">
   <!-- Desktop: flyer | description | button (via CSS) -->
