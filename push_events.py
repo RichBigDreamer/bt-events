@@ -266,7 +266,8 @@ def build_page_html(events):
         width: 100%;
         height: 100%;
         min-height: 140px;
-        object-fit: cover;
+        object-fit: contain;
+	background: #111;
       }}
       .card-middle {{
         flex: 1;
