@@ -6,9 +6,9 @@ from datetime import datetime, date
 from pathlib import Path
 from openpyxl import load_workbook
 
-CALENDAR_PATH = r"C:\Users\Admin2\Desktop\BT_Events_Calendar.xlsx"
-FLYERS_FOLDER = r"C:\Users\Admin2\Desktop\Flyers"
-REPO_PATH = r"C:\Users\Admin2\Desktop\bt-events"
+CALENDAR_PATH = r"C:\Users\ADmin2\Desktop\BT_Events_Calendar.xlsx"
+FLYERS_FOLDER = r"C:\Users\ADmin2\Desktop\Flyers"
+REPO_PATH = r"C:\Users\ADmin2\Desktop\bt-events"
 INDEX_PATH = os.path.join(REPO_PATH, "index.html")
 
 def load_events():

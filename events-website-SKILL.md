@@ -4,15 +4,15 @@ description: >
   Use this skill whenever Rich sends a flyer image on Telegram, asks to update
   the events website, asks to add or remove a show, or asks Lena to run the
   website updater. This skill covers the full workflow: extracting event info
-  from flyers, confirming with Rich, updating the Excel calendar, updating the
-  events website via GitHub, and keeping everything in sync.
+  from flyers, confirming with Rich, updating the Excel calendar, and updating
+  the events website via GitHub.
 ---
 
 # Events Website Skill
 
-This skill governs how Lena manages Bridge and Tunnel Brewery's events page
-at https://richbigdreamer.github.io/bt-events (also embedded at
-bridgeandtunnelbrewery.com/events).
+Lena manages Bridge and Tunnel Brewery events page at:
+- https://richbigdreamer.github.io/bt-events
+- Embedded at: bridgeandtunnelbrewery.com/events
 
 ---
 
@@ -20,139 +20,87 @@ bridgeandtunnelbrewery.com/events).
 
 | What | Where |
 |---|---|
-| Events Calendar | `C:\Users\Admin2\Desktop\BT_Events_Calendar.xlsx` |
-| Flyers Folder | `C:\Users\Admin2\Desktop\Flyers` |
-| Website Repo | `C:\Users\Admin2\Desktop\bt-events` |
-| Update Script | `C:\Users\Admin2\Desktop\bt-events\push_events.py` |
-| Live Website | https://richbigdreamer.github.io/bt-events |
+| Events Calendar | C:\Users\Admin2\Desktop\BT_Events_Calendar.xlsx |
+| Flyers Folder | C:\Users\Admin2\Desktop\Flyers |
+| Website Repo | C:\Users\Admin2\Desktop\bt-events |
+| Update Script | C:\Users\Admin2\Desktop\bt-events\push_events.py |
 
 ---
 
 ## Excel Calendar Column Structure
 
-| Column | Field |
-|---|---|
-| A | Date (MM/DD/YYYY) |
-| B | Venue (Ridgewood or Liberty) |
-| C | Act / Event Name |
-| D | Bands (all acts, separated by /) |
-| E | Promotor Name (admin only, not shown publicly) |
-| F | Promotor Email (admin only, not shown publicly) |
-| G | Flyer Filename (must match file in Flyers folder exactly) |
-| H | Ticket Link (URL or leave blank) |
-| I | Blast Sent? (yes/no) |
-| J | Website Updated? (yes/no) |
-| K | Notes (door time, price, age, special notes) |
+| Column | Field | Notes |
+|---|---|---|
+| A | Date | MM/DD/YYYY format |
+| B | Venue | Must be exactly "Ridgewood" or "Liberty" |
+| C | Show Description | ALL extracted info from flyer |
+| D | Promotor Name | Admin only - never shown publicly |
+| E | Promotor Phone | Admin only - never shown publicly |
+| F | Promotor Email | Admin only - never shown publicly |
+| G | Flyer Filename | Must match file in Flyers folder exactly |
+| H | Ticket Link | Full URL or leave blank |
+| I | Blast Sent? | yes or no |
+| J | Website Updated? | yes or no |
+
+### Show Description column C - what to include:
+Extract ALL of the following from the flyer:
+- All band/act names performing that night
+- Door time and show/music time
+- Ticket price or FREE
+- Age restriction (21+, All Ages, 18+)
+- Any special notes ("respect the space", etc.)
+- Promotor or presenter name if listed on flyer
+
+Example:
+Still Burning / Outlaws No Values / 50 Days at Ilam / Daisies Taller Than Trees
+Doors: 7PM | Music: 8PM
+$15 | 21+
 
 ---
 
-## Workflow 1 — Rich Forwards a Flyer
+## Critical Rules for Excel Entry
 
-**Trigger:** Rich sends an image on Telegram.
+- NEVER skip rows. Add new shows on the very next empty row immediately after the last entry.
+- No blank rows between entries.
+- Venue must be exactly "Ridgewood" or "Liberty" - spelling matters.
+- Flyer filename must match exactly what is saved in the Flyers folder including extension.
+- Promotor info (columns D, E, F) stays private - never shown on website.
+- Do not delete old rows. Rich keeps contact info for future bookings.
 
-### Step 1 — Extract from flyer using AI vision
-Read the flyer and extract:
-- **Date** — convert to MM/DD/YYYY format. If no year, use current or next upcoming year.
-- **Venue** — Ridgewood or Liberty:
-  - Ridgewood: "1535 Decatur", "Ridgewood", "Queens"
-  - Liberty: "50 Lake", "Liberty", "Catskills"
-  - Default to Ridgewood if unclear — flag it
-- **Act / Event Name** — headliner or show title (largest/topmost text)
-- **Bands** — ALL acts listed, separated by /
-- **Notes** — door time, show time, price, age restriction, "respect the space", etc.
-- **Ticket Link** — any URL found on flyer
-- **Admission type** — if FREE, note it in Notes column
+---
 
-### Step 2 — Present to Rich for confirmation
-Always confirm before doing anything. Use this format:
+## Workflow 1 - Rich Forwards a Flyer
 
-```
-Got the flyer! Here's what I extracted:
+Step 1: Extract from flyer using AI vision:
+- Date, Venue, All bands/acts, Door time, Show time, Price, Age restriction, Special notes, Ticket URL
 
-📅 Date: [date]
-📍 Venue: [Ridgewood or Liberty]
-🎤 Show: [act/event name]
-🎸 Bands: [band1 / band2 / band3]
-📋 Notes: [door time, price, age, etc.]
-🎟 Tickets: [URL or "Admission at Door" or "Free"]
+Step 2: Present to Rich for confirmation:
+"Got the flyer! Here's what I extracted:
+Date: [date]
+Venue: [Ridgewood or Liberty]
+Description: [all extracted show info]
+Ticket Link: [URL or none]
+Reply YES to update the calendar and website, or correct anything."
 
-Reply YES to update the calendar and website, or correct anything above.
-```
+Wait for Rich's YES before proceeding.
 
-**Wait for Rich's reply before proceeding.**
+Step 3: Save flyer to C:\Users\Admin2\Desktop\Flyers\
+Name format: [venue]_[date]_[showname].jpg
 
-### Step 3 — Save flyer file
-Save the flyer to:
-```
-C:\Users\Admin2\Desktop\Flyers\
-```
-Name it clearly:
-```
-[venue]_[date]_[showname].jpg
-```
-Example: `ridgewood_apr19_sawed_offs.jpg`
+Step 4: Update Excel calendar on next empty row - no skipping rows.
 
-### Step 4 — Update Excel calendar
-Add a new row with all extracted fields. Set:
-- Blast Sent = no
-- Website Updated = no
-
-### Step 5 — Update website
-Run:
-```
+Step 5: Run website updater:
 python "C:\Users\Admin2\Desktop\bt-events\push_events.py"
-```
 
-After running, confirm to Rich:
-```
-✅ [Show name] on [date] is now live on the events page.
-Check it at: bridgeandtunnelbrewery.com/events
-```
-
-Update Website Updated column to "yes" in the calendar.
+Step 6: Confirm to Rich and update Website Updated = yes in calendar.
 
 ---
 
-## Workflow 2 — Manual Website Update
+## Workflow 2 - Manual Website Update
 
-**Trigger:** Rich says "update the website", "refresh the events page", or "clean up past events."
+Run: python "C:\Users\Admin2\Desktop\bt-events\push_events.py"
 
-Just run:
-```
-python "C:\Users\Admin2\Desktop\bt-events\push_events.py"
-```
-
-The script automatically:
-- Removes past events
-- Shows all upcoming events that have flyers
-- Pushes to GitHub Pages
-
----
-
-## Workflow 3 — Promotor Reminder
-
-**Trigger:** Rich asks "remind promotors about flyers" or Lena notices a show is coming up without a flyer.
-
-Check the calendar for shows within the next 14 days where Flyer Filename is empty.
-For each one, send a reminder email to the promotor using:
-
-```
-python "C:\Users\Admin2\.openclaw\workspace\send_email.py"
-  --to "[promotor email]"
-  --subject "Flyer needed for [show name] on [date]"
-  --body "Hi [promotor name], just a reminder that we still need the flyer for [show name] on [date] at Bridge and Tunnel Brewery. Please send it over as soon as possible so we can promote the show. Thanks! Rich"
-```
-
----
-
-## Admission Display Rules
-
-| Flyer says | Show on website as |
-|---|---|
-| Ticket URL present | GET TICKETS button (red) |
-| FREE / Free Admission | FREE ADMISSION button (green) |
-| Price ($10, $15, etc.) | ADMISSION AT DOOR button (dark) |
-| Nothing listed | ADMISSION AT DOOR button (dark) |
+Past events are NOT automatically removed. Lena must manually update the calendar when Rich asks to remove a show. This protects promotor contact info.
 
 ---
 
@@ -162,19 +110,53 @@ python "C:\Users\Admin2\.openclaw\workspace\send_email.py"
 |---|---|
 | 1535 Decatur / Ridgewood / Queens | Ridgewood |
 | 50 Lake / Liberty / Catskills | Liberty |
-| "Bridge and Tunnel" only | Ridgewood (default) |
+| Bridge and Tunnel only | Ridgewood (default) |
 | Unclear | Ridgewood + flag for Rich |
+
+---
+
+## Ticket Button Rules
+
+| Situation | Button |
+|---|---|
+| Ticket URL in column H | GET TICKETS (red) |
+| "free" in description | FREE ADMISSION (green) |
+| No URL, not free | ADMISSION AT DOOR (dark) |
+
+---
+
+## Website Layout
+
+Desktop: Flyer left | Description middle | Ticket button right
+Mobile: Flyer full width, description below, button below
+Navigation: Sticky bar - Ridgewood, Liberty, Home links
+Anchors: #ridgewood and #liberty for homepage button links
 
 ---
 
 ## Principles
 
-**Always confirm before acting.** Never update the calendar or website without Rich's explicit YES.
+- Always confirm before acting - never update without Rich's YES
+- No flyer = no website listing
+- Never show promotor info publicly
+- Never skip rows in Excel calendar
+- Never delete old calendar rows
+- Both venue sections always show even when one has no events
 
-**No flyer = no website listing.** A show only appears on the website once a flyer file exists in the Flyers folder.
+---
 
-**Promotor info stays private.** Never show promotor name or email publicly on the website.
+## Auto-Expiry
 
-**Past events auto-remove.** The script handles this — no manual cleanup needed.
+Past events are automatically removed from the website display when push_events.py runs. Lena does NOT need to manually remove past events from the website. The script handles this automatically based on today's date.
 
-**One command updates everything.** `python push_events.py` reads the calendar, builds the page, and pushes to GitHub in one shot.
+The Excel calendar is NEVER touched by the script — it only reads from it. All historical show data, band names, and promotor contact info stays in the Excel sheet permanently.
+
+---
+
+## Critical Data Protection Rules
+
+- NEVER delete any rows from BT_Events_Calendar.xlsx without explicit permission from Rich.
+- NEVER clear or overwrite the Show Description, Promotor Name, Promotor Phone, or Promotor Email columns for any show.
+- Rich uses historical band and promotor contact information for future in-house show bookings. This data must be preserved.
+- If Rich asks to "clean up" the calendar, clarify whether he means the website (handled automatically) or the Excel file (requires his explicit confirmation before touching anything).
+- When in doubt — ask Rich before deleting or modifying any existing calendar data.
