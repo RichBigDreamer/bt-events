@@ -41,7 +41,7 @@ def load_events():
                         continue
         except:
             continue
-        if not event_date:
+        if not event_date or event_date < date.today():
             continue
         if not flyer_filename:
             continue
