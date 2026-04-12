@@ -6,9 +6,9 @@ from datetime import datetime, date
 from pathlib import Path
 from openpyxl import load_workbook
 
-CALENDAR_PATH = r"C:\Users\ADmin2\Desktop\BT_Events_Calendar.xlsx"
-FLYERS_FOLDER = r"C:\Users\ADmin2\Desktop\Flyers"
-REPO_PATH = r"C:\Users\ADmin2\Desktop\bt-events"
+CALENDAR_PATH = r"C:\Users\Admin2\Desktop\BT_Events_Calendar.xlsx"
+FLYERS_FOLDER = r"C:\Users\Admin2\Desktop\Flyers"
+REPO_PATH = r"C:\Users\Admin2\Desktop\bt-events"
 INDEX_PATH = os.path.join(REPO_PATH, "index.html")
 
 def load_events():
@@ -16,42 +16,18 @@ def load_events():
     wb = load_workbook(CALENDAR_PATH)
     ws = wb.active
     events = []
-    today = date.today()
-
-    headers = [str(c or "").strip().lower() for c in next(ws.iter_rows(min_row=4, max_row=4, values_only=True))]
-
-    def col(*names):
-        for name in names:
-            key = name.strip().lower()
-            if key in headers:
-                return headers.index(key)
-        return None
-
-    date_col = col("date")
-    venue_col = col("venue")
-    act_col = col("act / event name")
-    bands_col = col("bands", "bands (all acts on the bill)")
-    flyer_col = col("flyer filename")
-    ticket_col = col("ticket link")
-    notes_col = col("notes")
-
-    # Fallback for current live workbook layout, where headers stop at I
-    # but newer rows may still carry ticket link in H and notes in K.
-    if ticket_col is None:
-        ticket_col = 7
-    if notes_col is None:
-        notes_col = 10
-
     for row in ws.iter_rows(min_row=5, values_only=True):
-        if date_col is None or date_col >= len(row) or not row[date_col]:
+        # Skip rows with no date AND no venue — truly blank rows
+        if not row[0] and not row[1]:
             continue
-        raw_date = row[date_col]
-        venue = str(row[venue_col] or "").strip() if venue_col is not None and venue_col < len(row) else ""
-        act_name = str(row[act_col] or "").strip() if act_col is not None and act_col < len(row) else ""
-        bands = str(row[bands_col] or "").strip() if bands_col is not None and bands_col < len(row) else ""
-        flyer_filename = str(row[flyer_col] or "").strip() if flyer_col is not None and flyer_col < len(row) else ""
-        ticket_link = str(row[ticket_col] or "").strip() if ticket_col is not None and ticket_col < len(row) else ""
-        notes = str(row[notes_col] or "").strip() if notes_col is not None and notes_col < len(row) else ""
+        # Skip rows with no date
+        if not row[0]:
+            continue
+        raw_date = row[0]
+        venue = str(row[1] or "").strip()
+        description = str(row[2] or "").strip()
+        flyer_filename = str(row[6] or "").strip()
+        ticket_link = str(row[7] or "").strip()
         event_date = None
         try:
             if isinstance(raw_date, datetime):
@@ -67,24 +43,22 @@ def load_events():
                         continue
         except:
             continue
-        if not event_date or event_date < today:
+        if not event_date:
             continue
         if not flyer_filename:
             continue
         flyer_path = Path(FLYERS_FOLDER) / flyer_filename
         if not flyer_path.exists():
-            print(f"  Skipping {act_name} - flyer not found: {flyer_filename}")
+            print(f"  Skipping {description or 'unnamed'} - flyer not found: {flyer_filename}")
             continue
         date_display = event_date.strftime("%A, %B %d, %Y").replace(" 0", " ")
         events.append({
             "date": event_date,
             "date_display": date_display,
             "venue": venue,
-            "act_name": act_name,
-            "bands": bands,
+            "description": description,
             "flyer_path": str(flyer_path),
             "ticket_link": ticket_link,
-            "notes": notes,
         })
     events.sort(key=lambda x: x["date"])
     print(f"Found {len(events)} upcoming events with flyers")
@@ -96,45 +70,136 @@ def build_event_card(event):
     mime_map = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}
     mime = mime_map.get(ext, "image/jpeg")
     if ext == ".pdf":
-        img_html = '<div class="event-placeholder">PDF Flyer</div>'
+        img_html = '<div style="width:180px;min-width:180px;height:180px;background:#2a2a4a;display:flex;align-items:center;justify-content:center;color:#C9A84C;font-size:11px;">PDF Flyer</div>'
     else:
         with open(flyer_path, "rb") as f:
             img_data = base64.b64encode(f.read()).decode()
-        img_html = f'<img class="event-img" src="data:{mime};base64,{img_data}" alt="{event["act_name"]}">'
-    bands_html = ""
-    if event["bands"]:
-        band_list = [b.strip() for b in event["bands"].split("/") if b.strip()]
-        bands_html = '<div class="event-bill">' + "".join([f"• {b}<br>" for b in band_list]) + "</div>"
+        img_html = f'<img src="data:{mime};base64,{img_data}" alt="Event flyer" style="width:180px;min-width:180px;height:180px;object-fit:contain;display:block;background:#111;">'
+
     ticket_link = event["ticket_link"].strip() if event["ticket_link"] else ""
-    notes_lower = event["notes"].lower() if event["notes"] else ""
+    desc_lower = event["description"].lower() if event["description"] else ""
+
     if ticket_link.startswith("http"):
-        btn = f'<a href="{ticket_link}" target="_blank" class="btn btn-tickets">GET TICKETS</a>'
-    elif "free" in notes_lower:
-        btn = '<span class="btn btn-free">FREE ADMISSION</span>'
+        btn = f'<a href="{ticket_link}" target="_blank" style="display:inline-block;padding:10px 20px;background:#8B0000;color:#fff;border-radius:4px;font-size:13px;font-weight:bold;text-decoration:none;letter-spacing:1px;white-space:nowrap;">🎟 GET TICKETS</a>'
+    elif "free" in desc_lower:
+        btn = '<span style="display:inline-block;padding:10px 20px;background:#2E7D32;color:#fff;border-radius:4px;font-size:13px;font-weight:bold;letter-spacing:1px;white-space:nowrap;">🎉 FREE ADMISSION</span>'
     else:
-        btn = '<span class="btn btn-door">ADMISSION AT DOOR</span>'
-    notes_html = f'<div class="event-notes">{event["notes"]}</div>' if event["notes"] else ""
-    return f"""<div class="event-card">{img_html}<div class="event-details"><div class="event-date">{event["date_display"]}</div><div class="event-name">{event["act_name"]}</div>{bands_html}{notes_html}{btn}</div></div>"""
+        btn = '<span style="display:inline-block;padding:10px 20px;background:#333;color:#C9A84C;border-radius:4px;font-size:13px;font-weight:bold;letter-spacing:1px;white-space:nowrap;">🚪 ADMISSION AT DOOR</span>'
 
-def build_section(events):
-    if not events:
-        return '<div class="no-events">No upcoming events - check back soon!</div>'
-    return "\n".join([build_event_card(e) for e in events])
+    desc_html = f'<div style="color:#cccccc;font-size:13px;line-height:1.7;margin-top:8px;white-space:pre-wrap;">{event["description"]}</div>' if event["description"] else ""
 
-def update_index(events):
+    # Desktop: flyer | description | button
+    # Mobile: stacks vertically
+    return f'''<div style="display:flex;align-items:stretch;background:#1A1A2E;border-radius:8px;margin-bottom:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.25);">
+  <!-- Flyer -->
+  <div style="flex:0 0 180px;">
+    {img_html}
+  </div>
+  <!-- Middle: date + description -->
+  <div style="flex:1;padding:16px 20px;min-width:0;">
+    <div style="color:#C9A84C;font-size:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;">{event["date_display"]}</div>
+    {desc_html}
+  </div>
+  <!-- Right: ticket button -->
+  <div style="flex:0 0 auto;display:flex;align-items:center;padding:16px;">
+    {btn}
+  </div>
+</div>'''
+
+def build_page_html(events):
     ridgewood = [e for e in events if "ridgewood" in e["venue"].lower()]
     liberty = [e for e in events if "liberty" in e["venue"].lower()]
-    with open(INDEX_PATH, "r", encoding="utf-8") as f:
-        html = f.read()
-    r_start = html.index("<!-- RIDGEWOOD_START -->") + len("<!-- RIDGEWOOD_START -->")
-    r_end = html.index("<!-- RIDGEWOOD_END -->")
-    html = html[:r_start] + "\n" + build_section(ridgewood) + "\n" + html[r_end:]
-    l_start = html.index("<!-- LIBERTY_START -->") + len("<!-- LIBERTY_START -->")
-    l_end = html.index("<!-- LIBERTY_END -->")
-    html = html[:l_start] + "\n" + build_section(liberty) + "\n" + html[l_end:]
-    with open(INDEX_PATH, "w", encoding="utf-8") as f:
-        f.write(html)
-    print("index.html updated")
+
+    no_events = '<div style="text-align:center;color:#555;font-style:italic;padding:24px;border:2px dashed #ccc;border-radius:8px;background:#fff8dc;">No upcoming events — check back soon!</div>'
+
+    ridgewood_html = "\n".join([build_event_card(e) for e in ridgewood]) if ridgewood else no_events
+    liberty_html = "\n".join([build_event_card(e) for e in liberty]) if liberty else no_events
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Events — Bridge and Tunnel Brewery</title>
+  <style>
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{ background: #C8960C; font-family: Arial, sans-serif; }}
+
+    /* Sticky location nav */
+    .loc-nav {{
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #1A1A2E;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      padding: 10px 20px;
+    }}
+    .loc-nav a {{
+      color: #C9A84C;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border: 1px solid #C9A84C;
+      border-radius: 4px;
+    }}
+    .loc-nav a:hover {{ background: #C9A84C; color: #1A1A2E; }}
+
+    .content {{ padding: 20px; }}
+    .venue-section {{ max-width: 960px; margin: 0 auto 50px auto; }}
+    .venue-header {{ background: #1A1A2E; text-align: center; padding: 16px 24px; border-radius: 6px; margin-bottom: 20px; }}
+    .venue-header h2 {{ color: #C9A84C !important; font-size: 20px; letter-spacing: 2px; text-transform: uppercase; margin: 0; }}
+    .venue-header p {{ color: #F5E6C8 !important; font-size: 12px; margin-top: 4px; }}
+    .footer {{ text-align: center; color: #1A1A2E; font-size: 12px; padding: 20px; }}
+    .footer a {{ color: #1A1A2E; }}
+
+    /* Mobile */
+    @media (max-width: 650px) {{
+      .loc-nav {{ gap: 10px; }}
+      .event-card-inner {{ flex-direction: column !important; }}
+      .event-card-inner .flyer-col {{ flex: none !important; width: 100% !important; }}
+      .event-card-inner .flyer-col img {{ width: 100% !important; height: 260px !important; object-fit: contain !important; }}
+      .event-card-inner .btn-col {{ justify-content: flex-start !important; padding: 0 16px 16px 16px !important; }}
+    }}
+  </style>
+</head>
+<body>
+
+  <!-- Sticky top nav -->
+  <nav class="loc-nav">
+    <a href="#ridgewood">📍 Ridgewood, Queens</a>
+    <a href="#liberty">📍 Liberty, NY</a>
+    <a href="https://www.bridgeandtunnelbrewery.com" target="_parent">🏠 Home</a>
+  </nav>
+
+  <div class="content">
+    <div class="venue-section" id="ridgewood">
+      <div class="venue-header">
+        <h2>Ridgewood, Queens</h2>
+        <p>1535 Decatur Street, Ridgewood, NY 11385</p>
+      </div>
+      {ridgewood_html}
+    </div>
+
+    <div class="venue-section" id="liberty">
+      <div class="venue-header">
+        <h2>Liberty, NY — Catskills</h2>
+        <p>50 Lake Street, Liberty, NY 12754</p>
+      </div>
+      {liberty_html}
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>© Bridge and Tunnel Brewery · <a href="https://www.bridgeandtunnelbrewery.com" target="_parent">bridgeandtunnelbrewery.com</a></p>
+  </div>
+
+</body>
+</html>'''
 
 def push_to_github():
     print("Pushing to GitHub...")
@@ -148,9 +213,9 @@ if __name__ == "__main__":
     print("\nBridge and Tunnel Brewery - Events Page Updater")
     print("=" * 50)
     events = load_events()
-    if not events:
-        print("\nNo upcoming events with flyers found.")
-        sys.exit(0)
     print(f"\nBuilding page with {len(events)} event(s)...")
-    update_index(events)
+    html = build_page_html(events)
+    with open(INDEX_PATH, "w", encoding="utf-8") as f:
+        f.write(html)
+    print("index.html updated")
     push_to_github()
