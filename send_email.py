@@ -22,7 +22,7 @@ from PIL import Image
 SMTP_SERVER = "netsol-smtp-oxcs.hostingplatform.com"
 SMTP_PORT = 587
 FROM_EMAIL = "rich@bridgeandtunnelbrewery.com"
-FROM_PASSWORD = "YOUR_EMAIL_PASSWORD_HERE"
+FROM_PASSWORD = "YOUR_FIRST_CONFIRMED_PASSWORD"
 FROM_NAME = "Bridge and Tunnel Brewery"
 
 MAX_WIDTH = 600
