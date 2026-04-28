@@ -22,7 +22,7 @@ from PIL import Image
 SMTP_SERVER = "netsol-smtp-oxcs.hostingplatform.com"
 SMTP_PORT = 587
 FROM_EMAIL = "rich@bridgeandtunnelbrewery.com"
-FROM_PASSWORD = "YOUR_FIRST_CONFIRMED_PASSWORD"
+FROM_PASSWORD = "!Imlookinformyangel0011"
 FROM_NAME = "Bridge and Tunnel Brewery"
 
 MAX_WIDTH = 600
@@ -126,6 +126,7 @@ def send_email(to=None, bcc=None, subject="", body="", image_paths=None):
             server.starttls()
             server.ehlo()
             print("Logging in...")
+            server.esmtp_features['auth'] = 'LOGIN'
             server.login(FROM_EMAIL, FROM_PASSWORD)
             print(f"Sending to {len(all_recipients)} recipient(s)...")
             server.sendmail(FROM_EMAIL, all_recipients, msg.as_string())
@@ -144,8 +145,13 @@ if __name__ == "__main__":
     parser.add_argument("--to", help="Recipient email(s), comma-separated")
     parser.add_argument("--bcc", help="BCC email(s), comma-separated")
     parser.add_argument("--subject", required=True)
-    parser.add_argument("--body", required=True)
+    parser.add_argument("--body", help="Message body (plain text/HTML)")
+    parser.add_argument("--body-file", help="Path to file containing message body")
     parser.add_argument("--images", help="Image paths, comma-separated")
     args = parser.parse_args()
     image_list = [i.strip() for i in args.images.split(",")] if args.images else []
-    send_email(to=args.to, bcc=args.bcc, subject=args.subject, body=args.body, image_paths=image_list)
+    body = args.body or ""
+    if args.body_file:
+        with open(args.body_file, "r", encoding="utf-8") as f:
+            body = f.read()
+    send_email(to=args.to, bcc=args.bcc, subject=args.subject, body=body, image_paths=image_list)
