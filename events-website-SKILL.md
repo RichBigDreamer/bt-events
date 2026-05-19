@@ -4,8 +4,9 @@ description: >
   Use this skill whenever Rich sends a flyer image on Telegram, asks to update
   the events website, asks to add or remove a show, or asks Lena to run the
   website updater. This skill covers the full workflow: extracting event info
-  from flyers, confirming with Rich, updating the Excel calendar, and updating
-  the events website via GitHub.
+  from flyers, confirming with Rich, updating the Excel calendar, updating the
+  events website via GitHub, and handling explicit website push only flyer posts
+  when Rich says to skip calendar recording.
 ---
 
 # Events Website Skill
@@ -93,6 +94,24 @@ Step 5: Run website updater:
 python "C:\Users\Admin2\Desktop\bt-events\push_events.py"
 
 Step 6: Confirm to Rich and update Website Updated = yes in calendar.
+
+
+## Workflow 3 - Website Push Only Flyer Post
+
+Use only when Rich explicitly says "website push only" or otherwise explicitly says to skip the calendar.
+
+Step 1: Extract the flyer details and confirm the website copy with Rich. Treat "website push only" as the exact explicit exception phrase.
+
+Step 2: Save the flyer into C:\Users\Admin2\Desktop\Flyers\ with a clean
+filename.
+
+Step 3: Update the website directly with the flyer-backed event.
+
+Step 4: Verify the event appears in the generated/live site.
+
+Step 5: Do not add or modify any Excel calendar row for this exception.
+
+Step 6: Report completion back to Rich as website-only.
 
 ---
 
